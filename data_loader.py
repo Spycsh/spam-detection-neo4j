@@ -3,6 +3,9 @@ import numpy as np
 
 from sklearn.model_selection import train_test_split
 
+from layers import AggregatorSubLayer
+
+
 class DataLoader:
 
     def __init__(self, uri, user, password):
@@ -20,12 +23,7 @@ class DataLoader:
             item_user_adj = session.write_transaction(self.get_item_user_adj)
             review_item_adj = session.write_transaction(self.get_review_item_adj)
             review_user_adj = session.write_transaction(self.get_review_user_adj)
-            print(user_review_adj)
-            print(user_item_adj)
-            print(item_review_adj)
-            print(item_user_adj)
-            print(review_item_adj)
-            print(review_user_adj)
+
 
             # padding of the adjacent matrix
             user_review_adj_padding = self.pad_adj_list(user_review_adj)
@@ -33,11 +31,17 @@ class DataLoader:
             item_review_adj_padding = self.pad_adj_list(item_review_adj)
             item_user_adj_padding = self.pad_adj_list(item_user_adj)
 
+            print("user review adj")
             print(user_review_adj_padding)
+            print("user item adj")
             print(user_item_adj_padding)
+            print("item review adj")
             print(item_review_adj_padding)
+            print("item user adj")
             print(item_user_adj_padding)
+            print("review item adj")
             print(review_item_adj)
+            print("review user adj")
             print(review_user_adj)
 
             # initialize review_vecs
@@ -65,6 +69,7 @@ class DataLoader:
             for i, x in enumerate(user_review_adj):
                 for y in x:
                     user_vecs[i][y] = 1
+            print("user vectors:")
             print(user_vecs)
 
             # user_review_adj
@@ -72,6 +77,7 @@ class DataLoader:
             for i, x in enumerate(item_review_adj):
                 for y in x:
                     item_vecs[i][y] = 1
+            print("item vectors:")
             print(item_vecs)
 
             features = [review_vecs, user_vecs, item_vecs]
@@ -184,5 +190,5 @@ class DataLoader:
 
 if __name__ == "__main__":
     dataLoader = DataLoader("bolt://localhost:7687", "neo4j", "admin")
-    dataLoader.obtain_heterogeneous_graph()
+    dataLoader.obtain_graph()
     dataLoader.close()
