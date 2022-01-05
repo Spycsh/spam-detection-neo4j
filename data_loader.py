@@ -51,6 +51,8 @@ class DataLoader:
                                     [0, 1, 1, 1, 0],
                                     [0, 0, 1, 1, 1],
                                     [1, 1, 0, 1, 1]])
+            print("review vectors:")
+            print(review_vecs)
 
             # initialize user_vecs and item_vecs with user_review_adj and
             # item_review_adj
@@ -93,8 +95,11 @@ class DataLoader:
                         [0, 1, 1, 0, 1, 0, 0],
                         [0, 1, 0, 0, 1, 0, 0]]
 
+            print("homo comment graph:")
+            print(homo_adj)
 
-            adjs = [user_review_adj, user_item_adj, item_review_adj, item_user_adj,
+            # use padding matrix
+            adjs = [user_review_adj_padding, user_item_adj_padding, item_review_adj_padding, item_user_adj_padding,
                     review_user_adj, review_item_adj, homo_adj]
 
             # assign spam or not

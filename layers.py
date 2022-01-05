@@ -33,20 +33,20 @@ class HiddenStateEdge(layers.Layer):
         item_by_review = tf.nn.embedding_lookup(item_embedding, tf.cast(adj_lists[5], dtype=tf.int32))
         # item_by_review = tf.transpose(tf.random.shuffle(tf.transpose(ri)))
         # item_by_review = tf.transpose(item_by_review)
-        print("item_by_review", item_by_review)
+        # print("item_by_review", item_by_review)
 
         # adj_lists[4] : user_by_review: 1 * 7
         # user_embedding: 5 * 7
         # user_by_review: 7 * 7
         user_by_review = tf.nn.embedding_lookup(user_embedding, tf.cast(adj_lists[4], dtype=tf.int32))
         # user_by_review = tf.transpose(user_by_review)
-        print("user_by_review", user_by_review)
+        # print("user_by_review", user_by_review)
 
         # equation 4
         agg_vector = tf.concat([review_embedding, user_by_review, item_by_review], 1)
 
         result = self.activation(tf.matmul(agg_vector, self.agg_weights))
-        print(result)
+        # print(result)
         return result
 
 
@@ -62,8 +62,10 @@ class HiddenStateUserItem(layers.Layer):
         # set trainable weights
         self.user_weights = self.add_weight('user_weights', [input_dim_user, hidden_dim], dtype=tf.float32, trainable=True)
         self.item_weights = self.add_weight('item_weights', [input_dim_item, hidden_dim], dtype=tf.float32, trainable=True)
-        self.concat_user_weights = self.add_weight('concat_user_weights', [hidden_dim, output_dim], dtype=tf.float32, trainable=True)
-        self.concat_item_weights = self.add_weight('concat_item_weights', [hidden_dim, output_dim], dtype=tf.float32, trainable=True)
+        # self.concat_user_weights = self.add_weight('concat_user_weights', [hidden_dim, output_dim], dtype=tf.float32, trainable=True)
+        # self.concat_item_weights = self.add_weight('concat_item_weights', [hidden_dim, output_dim], dtype=tf.float32, trainable=True)
+        self.concat_user_weights = self.add_weight('concat_user_weights', [5,5], dtype=tf.float32, trainable=True)
+        self.concat_item_weights = self.add_weight('concat_item_weights', [3,3], dtype=tf.float32, trainable=True)
 
     def call(self, inputs):
         adj_lists, embedding_lists = inputs
@@ -73,57 +75,97 @@ class HiddenStateUserItem(layers.Layer):
         item_embedding = embedding_lists[2]
 
         # the review embeddings which correspond to the user
+        # adj_lists[0]: user-review
+        #ur
         review_by_user = tf.nn.embedding_lookup(review_embedding, tf.cast(adj_lists[0], dtype=tf.int32))
         # ur = tf.transpose(tf.random.shuffle(tf.transpose(ur)))
 
         # the items which the user bought
+        # adj_lists[1]: user-item
+        #ri
         item_by_user = tf.nn.embedding_lookup(item_embedding, tf.cast(adj_lists[1], dtype=tf.int32))
 
+        # adj_lists[2]: item-review
+        #ir
         review_by_item = tf.nn.embedding_lookup(review_embedding, tf.cast(adj_lists[2], dtype=tf.int32))
 
+        # adj_lists[3]: item-user
+        #ru
         user_by_item = tf.nn.embedding_lookup(user_embedding, tf.cast(adj_lists[3], dtype=tf.int32))
 
 
         # equation (6)
-        # TODO: need to print to see the shape
-        concat_i_e = tf.concat([item_by_user, review_by_user], axis=2)
-        concat_u_e = tf.concat([user_by_item, review_by_item], axis=2)
+        concat_u_e = tf.concat([review_by_user, item_by_user], axis=2)
+        concat_i_e = tf.concat([review_by_item, user_by_item], axis=2)
+        # print("before reshape")
+        # print(concat_u_e)
 
         s_i_e = tf.shape(concat_i_e)
         s_u_e = tf.shape(concat_u_e)
         concat_i_e = tf.reshape(concat_i_e, [s_i_e[0], s_i_e[1] * s_i_e[2]])
         concat_u_e = tf.reshape(concat_u_e, [s_u_e[0], s_u_e[1] * s_u_e[2]])
 
+        # print("after reshape")
+        # print(concat_u_e)
+
         # equation (7) attention
         attention_user = self.attention(user_embedding, user_embedding, concat_u_e)
         attention_item = self.attention(item_embedding, item_embedding, concat_i_e)
 
+        # print("__________________________")
+        # print(tf.shape(attention_user))
+        # print(tf.shape(self.user_weights))
+        # print("__________________________")
+
         # equation(5)
         agg_user_neigh_embedding = self.activation(tf.matmul(attention_user, self.user_weights))
-        agg_item_neigh_embedding = self.activation(tf.matmul(attention_item, self.item_weights,))
+        agg_item_neigh_embedding = self.activation(tf.matmul(attention_item, self.item_weights))
+
+        # print(agg_user_neigh_embedding) 5*64
+        # print(agg_item_neigh_embedding) 3*64
+        # print("xx")
 
         # equation (8)
         # TODO: check formula here
-        user_output = tf.concat(tf.matmul(self.concat_user_weights, user_embedding), agg_user_neigh_embedding)
-        item_output = tf.concat(tf.matmul(self.concat_item_weights, item_embedding), agg_item_neigh_embedding)
+        # print("concat_user_weights")
+        # print(self.concat_user_weights)
+        #
+        # print("user embedding")
+        # print(user_embedding)
+        #
+        # print("item_embedding")
+        # print(item_embedding)
+        #
+        # print("agg_user_neigh_embedding")
+        # print(agg_user_neigh_embedding)
+
+        user_output = tf.concat([tf.matmul(self.concat_user_weights, user_embedding), agg_user_neigh_embedding], axis=-1)
+        item_output = tf.concat([tf.matmul(self.concat_item_weights, item_embedding), agg_item_neigh_embedding], axis=-1)
+
+        # print("yyyyy")
+        # print(user_output) # 5*71
 
         return user_output, item_output
 
     # scaled dot product attention
     def attention(self, q: tf.Tensor, k: tf.Tensor, v: tf.Tensor):
-        k_trans = tf.transpose(k)
-        product = tf.matmul(q, k_trans)
-        dk = tf.cast(tf.shape(k)[-1], tf.float32) # dimension
-        scaled_attention = tf.matmul(tf.nn.softmax(product / tf.math.sqrt(dk), axis=-1), v)
+        # trans_k = tf.transpose(k)
+        product = tf.matmul(q, k, transpose_b=True)
+        dk = tf.cast(tf.shape(k)[-1], tf.float32)  # dimension
+        temp1 = product/tf.math.sqrt(dk)
+        temp2 = tf.nn.softmax(temp1, axis=-1)
+        # scaled_attention = tf.matmul(tf.nn.softmax(product / tf.math.sqrt(dk), axis=-1), v)
+        scaled_attention = tf.matmul(temp2, v)
         return scaled_attention
 
 
 class GraphConvolution(layers.Layer):
-    def __init__(self, input_dim, output_dim, dropout=0.5, **kwargs):
+    def __init__(self, input_dim, output_dim, num_features_nonzero, dropout=0.5, **kwargs):
         super(GraphConvolution, self).__init__(**kwargs)
 
-        # self.dropout = dropout
+        self.dropout = dropout
         self.activation = tf.nn.relu
+        self.num_features_nonzero = num_features_nonzero
 
         self.weights_ = []
 
@@ -137,19 +179,19 @@ class GraphConvolution(layers.Layer):
 
         # dropout
         if training is True:
-            x = tf.nn.dropout(x, self.dropout)
+            x = self.sparse_dropout(x, self.dropout, self.num_features_nonzero)
 
         # convolve
         supports = list()
         for i in range(len(support_)):
             # has features x
-            pre_sup = tf.matmul(x, self.weights_[i])
+            pre_sup = tf.sparse.sparse_dense_matmul(x, self.weights_[i])
 
-            support = tf.matmul(support_[i], pre_sup)
+            support = tf.sparse.sparse_dense_matmul(support_[i], pre_sup)
             supports.append(support)
 
         output = tf.add_n(supports)
-        axis = list(range(len(output.getshape()) - 1))
+        axis = list(range(len(output.get_shape()) - 1))
         mean, variance = tf.nn.moments(output, axis)
         scale = None
         offset = None
@@ -161,6 +203,20 @@ class GraphConvolution(layers.Layer):
 
         # normalization
         return tf.nn.l2_normalize(self.activation(output), axis=None, epsilon=1e-12)
+
+    def sparse_dropout(self, x: tf.SparseTensor, rate: float,
+                       noise_shape: int) -> tf.SparseTensor:
+        """
+        Dropout for sparse tensors.
+        :param x: the input sparse tensor
+        :param rate: the dropout rate
+        :param noise_shape: the feature dimension
+        """
+        random_tensor = 1 - rate
+        random_tensor += tf.random.uniform(noise_shape)
+        dropout_mask = tf.cast(tf.floor(random_tensor), dtype=tf.bool)
+        pre_out = tf.sparse.retain(x, dropout_mask)
+        return pre_out * (1. / (1 - rate))
 
 
 class GASConcatenation(layers.Layer):

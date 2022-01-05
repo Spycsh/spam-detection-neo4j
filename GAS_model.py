@@ -5,7 +5,7 @@ from layers import HiddenStateEdge,HiddenStateUserItem,GraphConvolution,GASConca
 
 class GASModel(keras.Model):
 
-    def __init__(self, **kwargs):
+    def __init__(self, kwargs):
         super().__init__()
 
         self.class_size = 2
@@ -14,13 +14,13 @@ class GASModel(keras.Model):
         self.input_dim_i = kwargs.get("input_dim_i")
         self.input_dim_u = kwargs.get("input_dim_u")
         self.input_dim_r_gcn = kwargs.get("input_dim_r_gcn")
-        self.output_dim1 = kwargs.get("output_dim1")
-        self.output_dim2 = kwargs.get("output_dim2")
-        self.output_dim3 = kwargs.get("output_dim3")
-        self.output_dim4 = kwargs.get("output_dim4")
-        self.output_dim5 = kwargs.get("output_dim5")
-        # self.num_features_nonzero = args.num_features_nonzero
-        self.gcn_dim = kwargs.get("gcn_dim")
+        self.output_dim1 = kwargs.get("output_dim1", 64)
+        self.output_dim2 = kwargs.get("output_dim2", 64)
+        self.output_dim3 = kwargs.get("output_dim3", 64)
+        self.output_dim4 = kwargs.get("output_dim4", 64)
+        self.output_dim5 = kwargs.get("output_dim5", 64)
+        self.num_features_nonzero = kwargs.get("num_features_nonzero")
+        self.gcn_dim = kwargs.get("gcn_dim", 5)
         self.h_i_size = kwargs.get("h_i_size")
         self.h_u_size = kwargs.get("h_u_size")
 
@@ -41,8 +41,8 @@ class GASModel(keras.Model):
         # review aggregator
         self.r_gcn_layer = GraphConvolution(input_dim=self.input_dim_r_gcn,
                                             output_dim=self.output_dim5,
-                                            # num_features_nonzero=self.
-                                            # num_features_nonzero,
+                                            num_features_nonzero=self.
+                                            num_features_nonzero,
                                             # activation=tf.nn.relu,
                                             dropout=0.5,
                                             # is_sparse_inputs=True,
@@ -76,11 +76,27 @@ class GASModel(keras.Model):
         masked_label = tf.gather(label, idx_mask)
 
         # calculation loss and accuracy()
-        bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-        loss = bce(masked_label, masked_data).numpy()
+        # bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+        # loss = bce(masked_label, masked_data).numpy()
+        #
+        # m = tf.keras.metrics.BinaryAccuracy()
+        # m.update_state(masked_label, masked_data)
+        # acc = m.result().numpy()
 
-        m = tf.keras.metrics.BinaryAccuracy()
-        m.update_state(masked_label, masked_data)
-        acc = m.result().numpy()
+        # calculation loss and accuracy()
+        logits = tf.nn.softmax(tf.matmul(masked_data, self.u))
+        loss = -tf.reduce_sum(
+            tf.math.log(tf.nn.sigmoid(masked_label * logits)))
+        acc = self.accuracy(logits, masked_label)
 
         return loss, acc
+
+    def accuracy(self, preds: tf.Tensor, labels: tf.Tensor) -> tf.Tensor:
+        """
+        Accuracy.
+        :param preds: the class prediction probabilities of the input data
+        :param labels: the labels of the input data
+        """
+        correct_prediction = tf.equal(tf.argmax(preds, 1), tf.argmax(labels, 1))
+        accuracy_all = tf.cast(correct_prediction, tf.float32)
+        return tf.reduce_sum(accuracy_all) / preds.shape[0]
