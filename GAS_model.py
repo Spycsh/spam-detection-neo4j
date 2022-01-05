@@ -13,6 +13,8 @@ class GASModel(keras.Model):
         self.input_dim_r = kwargs.get("input_dim_r")
         self.input_dim_i = kwargs.get("input_dim_i")
         self.input_dim_u = kwargs.get("input_dim_u")
+        self.input_dim_i_x = kwargs.get("input_dim_i_x")
+        self.input_dim_u_x = kwargs.get("input_dim_u_x")
         self.input_dim_r_gcn = kwargs.get("input_dim_r_gcn")
         self.output_dim1 = kwargs.get("output_dim1", 64)
         self.output_dim2 = kwargs.get("output_dim2", 64)
@@ -35,6 +37,8 @@ class GASModel(keras.Model):
                                                 input_dim_item=self.h_i_size,
                                                 output_dim=self.output_dim3,
                                                 hidden_dim=self.output_dim2,
+                                                input_dim_u_x=self.input_dim_u_x,
+                                                input_dim_i_x=self.input_dim_i_x
                                                 # concat=True
                                                 )
 
@@ -75,28 +79,31 @@ class GASModel(keras.Model):
         masked_data = tf.gather(gas_out, idx_mask)
         masked_label = tf.gather(label, idx_mask)
 
-        # calculation loss and accuracy()
-        # bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-        # loss = bce(masked_label, masked_data).numpy()
-        #
-        # m = tf.keras.metrics.BinaryAccuracy()
-        # m.update_state(masked_label, masked_data)
-        # acc = m.result().numpy()
-
-        # calculation loss and accuracy()
+        # output layer
         logits = tf.nn.softmax(tf.matmul(masked_data, self.u))
-        loss = -tf.reduce_sum(
-            tf.math.log(tf.nn.sigmoid(masked_label * logits)))
-        acc = self.accuracy(logits, masked_label)
+
+
+        # loss = -tf.reduce_sum(
+        #     tf.math.log(tf.nn.sigmoid(masked_label * logits)))
+        # acc = self.accuracy(logits, masked_label)
+
+        # calculate loss
+        bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+        loss = bce(masked_label, logits)
+
+        # calculate accuracy
+        m = tf.keras.metrics.BinaryAccuracy()
+        m.update_state(masked_label, logits)
+        acc = m.result().numpy()
 
         return loss, acc
 
-    def accuracy(self, preds: tf.Tensor, labels: tf.Tensor) -> tf.Tensor:
-        """
-        Accuracy.
-        :param preds: the class prediction probabilities of the input data
-        :param labels: the labels of the input data
-        """
-        correct_prediction = tf.equal(tf.argmax(preds, 1), tf.argmax(labels, 1))
-        accuracy_all = tf.cast(correct_prediction, tf.float32)
-        return tf.reduce_sum(accuracy_all) / preds.shape[0]
+    # def accuracy(self, preds: tf.Tensor, labels: tf.Tensor) -> tf.Tensor:
+    #     """
+    #     Accuracy.
+    #     :param preds: the class prediction probabilities of the input data
+    #     :param labels: the labels of the input data
+    #     """
+    #     correct_prediction = tf.equal(tf.argmax(preds, 1), tf.argmax(labels, 1))
+    #     accuracy_all = tf.cast(correct_prediction, tf.float32)
+    #     return tf.reduce_sum(accuracy_all) / preds.shape[0]

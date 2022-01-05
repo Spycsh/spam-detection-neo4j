@@ -10,11 +10,12 @@ class HiddenStateEdge(layers.Layer):
         super(HiddenStateEdge, self).__init__(**kwargs)
         self.input_dim = input_dim
         self.output_dim = output_dim
+
         self.activation = tf.nn.relu
         self.agg_weights = self.add_weight('agg_weights', [input_dim, output_dim], dtype=tf.float32, trainable=True)
 
 
-    def call(self, inputs, *args, **kwargs):
+    def call(self, inputs):
         # split adjcent lists and three embedding lists
         adj_lists, embedding_lists = inputs
 
@@ -52,20 +53,22 @@ class HiddenStateEdge(layers.Layer):
 
 # equation (5) (6) (7) (8)
 class HiddenStateUserItem(layers.Layer):
-    def __init__(self, input_dim_item, input_dim_user, hidden_dim, output_dim, **kwargs):
+    def __init__(self, input_dim_item, input_dim_user, hidden_dim, output_dim, input_dim_u_x, input_dim_i_x, **kwargs):
         super(HiddenStateUserItem, self).__init__(**kwargs)
         self.input_dim_item = input_dim_item
         self.input_dim_user = input_dim_user
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
+
         self.activation = tf.nn.relu
+
         # set trainable weights
         self.user_weights = self.add_weight('user_weights', [input_dim_user, hidden_dim], dtype=tf.float32, trainable=True)
         self.item_weights = self.add_weight('item_weights', [input_dim_item, hidden_dim], dtype=tf.float32, trainable=True)
         # self.concat_user_weights = self.add_weight('concat_user_weights', [hidden_dim, output_dim], dtype=tf.float32, trainable=True)
         # self.concat_item_weights = self.add_weight('concat_item_weights', [hidden_dim, output_dim], dtype=tf.float32, trainable=True)
-        self.concat_user_weights = self.add_weight('concat_user_weights', [5,5], dtype=tf.float32, trainable=True)
-        self.concat_item_weights = self.add_weight('concat_item_weights', [3,3], dtype=tf.float32, trainable=True)
+        self.concat_user_weights = self.add_weight('concat_user_weights', [input_dim_u_x, input_dim_u_x], dtype=tf.float32, trainable=True)
+        self.concat_item_weights = self.add_weight('concat_item_weights', [input_dim_i_x, input_dim_i_x], dtype=tf.float32, trainable=True)
 
     def call(self, inputs):
         adj_lists, embedding_lists = inputs
@@ -76,21 +79,17 @@ class HiddenStateUserItem(layers.Layer):
 
         # the review embeddings which correspond to the user
         # adj_lists[0]: user-review
-        #ur
         review_by_user = tf.nn.embedding_lookup(review_embedding, tf.cast(adj_lists[0], dtype=tf.int32))
         # ur = tf.transpose(tf.random.shuffle(tf.transpose(ur)))
 
         # the items which the user bought
         # adj_lists[1]: user-item
-        #ri
         item_by_user = tf.nn.embedding_lookup(item_embedding, tf.cast(adj_lists[1], dtype=tf.int32))
 
         # adj_lists[2]: item-review
-        #ir
         review_by_item = tf.nn.embedding_lookup(review_embedding, tf.cast(adj_lists[2], dtype=tf.int32))
 
         # adj_lists[3]: item-user
-        #ru
         user_by_item = tf.nn.embedding_lookup(user_embedding, tf.cast(adj_lists[3], dtype=tf.int32))
 
 
@@ -126,19 +125,6 @@ class HiddenStateUserItem(layers.Layer):
         # print("xx")
 
         # equation (8)
-        # TODO: check formula here
-        # print("concat_user_weights")
-        # print(self.concat_user_weights)
-        #
-        # print("user embedding")
-        # print(user_embedding)
-        #
-        # print("item_embedding")
-        # print(item_embedding)
-        #
-        # print("agg_user_neigh_embedding")
-        # print(agg_user_neigh_embedding)
-
         user_output = tf.concat([tf.matmul(self.concat_user_weights, user_embedding), agg_user_neigh_embedding], axis=-1)
         item_output = tf.concat([tf.matmul(self.concat_item_weights, item_embedding), agg_item_neigh_embedding], axis=-1)
 
