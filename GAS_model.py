@@ -79,9 +79,11 @@ class GASModel(keras.Model):
         masked_data = tf.gather(gas_out, idx_mask)
         masked_label = tf.gather(label, idx_mask)
 
+        print("######################")
+        # print(masked_data)
         # output layer
         logits = tf.nn.softmax(tf.matmul(masked_data, self.u))
-
+        print(logits)
 
         # loss = -tf.reduce_sum(
         #     tf.math.log(tf.nn.sigmoid(masked_label * logits)))
