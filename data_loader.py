@@ -58,6 +58,15 @@ class DataLoader:
             # item_review_adj
             # for example, u0 has r1 and r0, then we get the first line of user_vecs:
             # [1, 1, 0, 0, 0, 0, 0]
+            user_vecs = np.array([[1, 0, 0, 0, 0, 0, 0],
+                                  [0, 1, 0, 0, 0, 0, 0],
+                                  [0, 0, 1, 0, 0, 0, 0],
+                                  [0, 0, 0, 1, 0, 0, 0],
+                                  [0, 0, 0, 0, 1, 0, 0]])
+            item_vecs = np.array([[0, 0, 0, 0, 0, 0, 1],
+                                  [0, 0, 0, 0, 0, 1, 0],
+                                  [0, 0, 0, 0, 1, 0, 0]])
+
             # user_vecs = np.array([[1, 1, 0, 0, 0, 0, 0],
             #                       [0, 0, 1, 0, 0, 0, 0],
             #                       [0, 0, 0, 1, 0, 0, 0],
@@ -66,18 +75,19 @@ class DataLoader:
             # item_vecs = np.array([[1, 0, 1, 1, 0, 0, 0],
             #                       [0, 1, 0, 0, 1, 0, 0],
             #                       [0, 0, 0, 0, 0, 1, 1]])
-            user_vecs = np.zeros((len(user_review_adj), len(review_vecs)))
-            for i, x in enumerate(user_review_adj):
-                for y in x:
-                    user_vecs[i][y] = 1
+
+            # user_vecs = np.zeros((len(user_review_adj), len(review_vecs)))
+            # for i, x in enumerate(user_review_adj):
+            #     for y in x:
+            #         user_vecs[i][y] = 1
             print("user vectors:")
             print(user_vecs)
 
             # user_review_adj
-            item_vecs = np.zeros((len(item_review_adj), len(review_vecs)))
-            for i, x in enumerate(item_review_adj):
-                for y in x:
-                    item_vecs[i][y] = 1
+            # item_vecs = np.zeros((len(item_review_adj), len(review_vecs)))
+            # for i, x in enumerate(item_review_adj):
+            #     for y in x:
+            #         item_vecs[i][y] = 1
             print("item vectors:")
             print(item_vecs)
 
@@ -87,6 +97,14 @@ class DataLoader:
             # use word2vec or sentence2vec to generate
             # A Simple but Tough-to-Beat
             # Baseline for Sentence Embeddings. (2017)
+            # homo_adj = [[1, 0, 0, 0, 1, 1, 1],
+            #             [1, 1, 0, 0, 1, 1, 0],
+            #             [0, 0, 0, 1, 1, 1, 0],
+            #             [1, 0, 1, 0, 0, 1, 0],
+            #             [1, 1, 1, 1, 1, 0, 1],
+            #             [0, 1, 1, 0, 1, 1, 0],
+            #             [0, 1, 0, 0, 1, 0, 0]]
+
             homo_adj = [[1, 0, 0, 0, 1, 1, 1],
                         [1, 0, 0, 0, 1, 1, 0],
                         [0, 0, 0, 1, 1, 1, 0],

@@ -79,15 +79,12 @@ class GASModel(keras.Model):
         masked_data = tf.gather(gas_out, idx_mask)
         masked_label = tf.gather(label, idx_mask)
 
-        print("######################")
+        # print("######################")
         # print(masked_data)
         # output layer
         logits = tf.nn.softmax(tf.matmul(masked_data, self.u))
-        print(logits)
+        # print(logits)
 
-        # loss = -tf.reduce_sum(
-        #     tf.math.log(tf.nn.sigmoid(masked_label * logits)))
-        # acc = self.accuracy(logits, masked_label)
 
         # calculate loss
         bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
@@ -100,12 +97,3 @@ class GASModel(keras.Model):
 
         return loss, acc
 
-    # def accuracy(self, preds: tf.Tensor, labels: tf.Tensor) -> tf.Tensor:
-    #     """
-    #     Accuracy.
-    #     :param preds: the class prediction probabilities of the input data
-    #     :param labels: the labels of the input data
-    #     """
-    #     correct_prediction = tf.equal(tf.argmax(preds, 1), tf.argmax(labels, 1))
-    #     accuracy_all = tf.cast(correct_prediction, tf.float32)
-    #     return tf.reduce_sum(accuracy_all) / preds.shape[0]

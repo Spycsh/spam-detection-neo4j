@@ -8,22 +8,9 @@ from tensorflow.keras import optimizers
 from typing import Tuple, Union
 import scipy.sparse as sp
 
-
-def sparse_to_tuple(sparse_mx: sp.coo_matrix) -> Tuple[np.array, np.array,
-                                                       np.array]:
-    """
-    Convert sparse matrix to tuple representation.
-    :param sparse_mx: the graph adjacency matrix in scipy sparse matrix format
-    """
-
-    def to_tuple(mx):
-        if not sp.isspmatrix_coo(mx):
-            mx = mx.tocoo()
-        coords = np.vstack((mx.row, mx.col)).transpose()
-        values = mx.data
-        shape = mx.shape
-        return coords, values, shape
-
+# Convert sparse matrix to tuple (coords, values, shape).
+# param sparse_mx: the graph adjacency matrix in scipy sparse matrix format
+def sparse_to_tuple(sparse_mx: sp.coo_matrix) -> Tuple[np.array, np.array, np.array]:
     if isinstance(sparse_mx, list):
         for i in range(len(sparse_mx)):
             sparse_mx[i] = to_tuple(sparse_mx[i])
@@ -32,16 +19,20 @@ def sparse_to_tuple(sparse_mx: sp.coo_matrix) -> Tuple[np.array, np.array,
 
     return sparse_mx
 
+def to_tuple(mx):
+        if not sp.isspmatrix_coo(mx):
+            mx = mx.tocoo()
+        coords = np.vstack((mx.row, mx.col)).transpose()
+        values = mx.data
+        shape = mx.shape
+        return coords, values, shape
 
-def preprocess_feature(features: np.array, to_tuple: bool = True) -> \
-        Union[Tuple[np.array, np.array, np.array], sp.csr_matrix]:
-    """
-    Row-normalize feature matrix and convert to tuple representation
-    Parts of this code file were originally forked from
-    https://github.com/tkipf/gcn
-    :param features: the node feature matrix
-    :param to_tuple: whether cast the feature matrix to scipy sparse tuple
-    """
+
+# Row-normalize feature matrix and convert to tuple representation
+# Parts of this code file were originally forked from https://github.com/tkipf/gcn
+# features: the node feature matrix
+# to_tuple: whether cast the feature matrix to scipy sparse tuple
+def preprocess_feature(features: np.array, to_tuple: bool = True) -> Union[Tuple[np.array, np.array, np.array], sp.csr_matrix]:
     features = sp.lil_matrix(features)
     rowsum = np.array(features.sum(1))
     r_inv = np.power(rowsum, -1).flatten()
@@ -54,15 +45,10 @@ def preprocess_feature(features: np.array, to_tuple: bool = True) -> \
     else:
         return features
 
-def preprocess_adj(adj: np.array, to_tuple: bool = True) -> \
-        Union[Tuple[np.array, np.array, np.array], sp.coo_matrix]:
-    """
-    Preprocessing of adjacency matrix for simple GCN model
-    and conversion to tuple representation.
-    Parts of this code file were originally forked from
-    https://github.com/tkipf/gcn
-    :param adj: the graph adjacency matrix
-    """
+# Preprocessing of adjacency matrix for simple GCN model and conversion to tuple representation.
+# Parts of this code file were originally forked from https://github.com/tkipf/gcn
+def preprocess_adj(adj: np.array, to_tuple: bool = True) -> Union[Tuple[np.array, np.array, np.array], sp.coo_matrix]:
+
     adj_normalized = normalize_adj(adj + sp.eye(adj.shape[0]))
 
     if to_tuple:
@@ -70,13 +56,10 @@ def preprocess_adj(adj: np.array, to_tuple: bool = True) -> \
     else:
         return
 
+# Symmetrically normalize adjacency matrix
+# Parts of this code file were originally forked from https://github.com/tkipf/gcn
 def normalize_adj(adj: np.array) -> sp.coo_matrix:
-    """
-    Symmetrically normalize adjacency matrix
-    Parts of this code file were originally forked from
-    https://github.com/tkipf/gcn
-    :param adj: the graph adjacency matrix
-    """
+
     adj = sp.coo_matrix(adj)
     rowsum = np.array(adj.sum(1))
     d_inv_sqrt = np.power(rowsum, -0.5).flatten()
@@ -129,6 +112,9 @@ if __name__ == "__main__":
 
     kwargs['input_dim_r_gcn'] = r_feature[2][1]
     kwargs['num_features_nonzero'] = r_feature[1].shape
+
+    # adj_list[0]: user-review-adj 5 * 2
+    # 2 * (5 + 7)
     kwargs['h_u_size'] = adj_list[0].shape[1] * (
             kwargs.get('input_dim_r') + kwargs.get('input_dim_i'))
     kwargs['h_i_size'] = adj_list[2].shape[1] * (
